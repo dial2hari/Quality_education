@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Emotional | learncapsule</title>
+    <link rel="stylesheet" href="css/emotional.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp"
+      crossorigin="anonymous"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Gloria Hallelujah"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Poppins"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/navigation.css" />
+  </head>
+  <body>
+    <div class="header-container">
+      <div class="header-item item1">
+        <img id="logo" src="image/logo.svg" alt="SVG image" />
+      </div>
+      <div class="header-item item2">
+        <a href="/">Home</a>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <a href="/emotional">EmoAnalysis</a>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <a href="quiz.html">Quiz</a>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      </div>
+    </div>
+    <div class="main-container">
+      <div class="intro-container">
+        <div class="svg-container mt-1 mb-3">
+          <img class="svg" src="image/emo/pin.svg" />
+          <img class="svg" src="image/emo/heart.svg" />
+      </div>
+      <div class="emo-container mb-5">
+        <div class="input-container">
+         <div class="input-header">Enter Text Below</div>
+          <form action="{{ url_for('predict')}}" method="post">
+           <textarea type="text"
+              name="inputString"
+              placeholder="Enter the sentence here"
+              required="required"></textarea>
+            <button class="input-btn mt-3" type="submit" onclick="display()">
+             Analysis
+            </button>
+          </form>
+        </div>
+        <div class="image-container">
+         <img src="image/quiz/button.svg" alt="SVG image" />
+        </div>
+        <div class="output-container">
+          <p class="output-header mt-3">ANALYSIS RESULT:</p>
+          <span {{ prediction_text }} id="output-result" style="display:none"></span>
+          <p id="converted-result" class="output"></p>
+        </div>
+      </div>
+    </div>
+    <footer>
+      <img src="image/homepage/footer.svg" alt="SVG image" />
+    </footer>
+
+  </body>
+</html>
