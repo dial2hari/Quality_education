@@ -3,16 +3,16 @@ warnings.filterwarnings('ignore')
 import pandas as pd
 import numpy as np
 import re
-import matplotlib.pyplot as plt
-%matplotlib inline
-import seaborn as sns
-import plotly.express as px
+#import matplotlib.pyplot as plt
+#%matplotlib inline
+#import seaborn as sns
+#import plotly.express as px
 import emoji
 import string
 import nltk
-from PIL import Image
+#from PIL import Image
 from collections import Counter
-from wordcloud import WordCloud, ImageColorGenerator, STOPWORDS
+#from wordcloud import WordCloud, ImageColorGenerator, STOPWORDS
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
@@ -73,6 +73,8 @@ def decontract(text):
     text = re.sub(r"\'m", " am", text)
     return text
 
+
+
 def clean_hashtags(tweet):
     new_tweet = " ".join(word.strip() for word in re.split('#(?!(?:hashtag)\b)[\w-]+(?=(?:\s+#[\w-]+)*\s*$)', tweet))
     new_tweet2 = " ".join(word.strip() for word in re.split('#|_', new_tweet))
@@ -100,25 +102,19 @@ def lemmatize(text):
     lm = WordNetLemmatizer()
     return ' '.join([lm.lemmatize(words) for words in tokenized])
 
-# def preprocess(text):
-#     text = strip_emoji(text)
-#     text = decontract(text)
-#     text = strip_all_entities(text)
-#     text = clean_hashtags(text)
-#     text = filter_chars(text)
-#     text = remove_mult_spaces(text)
-#     text = stemmer(text)
-#     text = lemmatize(text)
-#     return text
+def preprocess(text):
+    text = strip_emoji(text)
+    text = decontract(text)
+    text = strip_all_entities(text)
+    text = clean_hashtags(text)
+    text = filter_chars(text)
+    text = remove_mult_spaces(text)
+    text = stemmer(text)
+    text = lemmatize(text)
+    return text
 
-data['cleaned_text'] = data['text'].apply(strip_emoji)
-data['cleaned_text'] = data['text'].apply(decontract)
-data['cleaned_text'] = data['text'].apply(strip_all_entities)
-data['cleaned_text'] = data['text'].apply(clean_hashtags)
-data['cleaned_text'] = data['text'].apply(filter_chars)
-data['cleaned_text'] = data['text'].apply(remove_mult_spaces)
-data['cleaned_text'] = data['text'].apply(stemmer)
-data['cleaned_text'] = data['text'].apply(lemmatize)
+data['cleaned_text'] = data['text'].apply(preprocess)
+
 
 data.drop_duplicates("cleaned_text", inplace=True)
 
@@ -141,7 +137,7 @@ X,Y = data['cleaned_text'],data['sentiment_encoded']
 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = 0.3, stratify =Y, random_state = 42)
 
 from sklearn.feature_extraction.text import TfidfVectorizer 
-from sklearn2pmml.feature_extraction.text import Splitter
+#from sklearn2pmml.feature_extraction.text import Splitter
 
 tf_idf = TfidfVectorizer()
 X_train_tf = tf_idf.fit_transform(X_train)

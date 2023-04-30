@@ -3,15 +3,14 @@ import numpy as np
 import re
 from flask import Flask, request, render_template
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.express as px
+
+
 import emoji
 import string
 import nltk
-from PIL import Image
+# from PIL import Image
 from collections import Counter
-from wordcloud import WordCloud, STOPWORDS
+
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
@@ -20,7 +19,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 nltk.download('stopwords')
-from pypmml import Model
+#from pypmml import Model
 from sklearn.svm import SVC, LinearSVC
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
@@ -30,11 +29,11 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
-from sklearn2pmml import PMMLPipeline, sklearn2pmml
+#from sklearn2pmml import PMMLPipeline, sklearn2pmml
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer 
-from sklearn2pmml.feature_extraction.text import Splitter
-from nyoka import skl_to_pmml
+#from sklearn2pmml.feature_extraction.text import Splitter
+#from nyoka import skl_to_pmml
 
 
 #Create an app object using the Flask class. 
@@ -132,16 +131,18 @@ def predict():
 
 
 
-    data['cleaned_text'] = data['text'].apply(strip_emoji)
-    data['cleaned_text'] = data['text'].apply(decontract)
-    data['cleaned_text'] = data['text'].apply(strip_all_entities)
-    data['cleaned_text'] = data['text'].apply(clean_hashtags)
-    data['cleaned_text'] = data['text'].apply(filter_chars)
-    data['cleaned_text'] = data['text'].apply(remove_mult_spaces)
-    data['cleaned_text'] = data['text'].apply(stemmer)
-    data['cleaned_text'] = data['text'].apply(lemmatize)
+    def preprocess(text): #(initial one)
+        text = strip_emoji(text)
+        text = decontract(text)
+        text = strip_all_entities(text)
+        text = clean_hashtags(text)
+        text = filter_chars(text)
+        text = remove_mult_spaces(text)
+        text = stemmer(text)
+        text = lemmatize(text)
+        return text
 
-    
+    data['cleaned_text'] = data['text'].apply(preprocess)
     # Applying the TfidfVectorizer  
     X_test_tf = vectorizer.transform(data['cleaned_text'])
     
