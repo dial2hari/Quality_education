@@ -1,17 +1,19 @@
 import pickle
 import numpy as np
 import re
+import multiprocessing as mp
+from multiprocessing import Process
 from flask import Flask, request, render_template
 import pandas as pd
-
-
-
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
 import emoji
 import string
 import nltk
-
+from PIL import Image
 from collections import Counter
-
+from wordcloud import WordCloud, STOPWORDS
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
@@ -20,7 +22,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 nltk.download('stopwords')
-
+from pypmml import Model
 from sklearn.svm import SVR, LinearSVR
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
@@ -30,24 +32,24 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
-
+from sklearn2pmml import PMMLPipeline, sklearn2pmml
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer 
-
-
+from sklearn2pmml.feature_extraction.text import Splitter
+from nyoka import skl_to_pmml
 
 
 #Create an app object using the Flask class. 
 app = Flask(__name__)
 
 #Load the trained models. (Pickle files)
-regressor_agg = pickle.load(open('models\regressor_agg.pkl', 'rb'))
-regressor_att = pickle.load(open('models\regressor_att.pkl', 'rb'))
-regressor_tox = pickle.load(open('models\regressor_tox.pkl', 'rb'))
+regressor_agg = pickle.load(open('models/regressor_agg.pkl', 'rb'))
+regressor_att = pickle.load(open('models/regressor_att.pkl', 'rb'))
+regressor_tox = pickle.load(open('models/regressor_tox.pkl', 'rb'))
 
-vectorizer_agg = pickle.load(open('models\vectorizer_agg.pkl',"rb"))
-vectorizer_att = pickle.load(open('models\vectorizer_att.pkl',"rb"))
-vectorizer_tox = pickle.load(open('models\vectorizer_tox.pkl',"rb"))
+vectorizer_agg = pickle.load(open('models/vectorizer_agg.pkl',"rb"))
+vectorizer_att = pickle.load(open('models/vectorizer_att.pkl',"rb"))
+vectorizer_tox = pickle.load(open('models/vectorizer_tox.pkl',"rb"))
 
 #Define the route to be home. 
 #The decorator below links the relative route of the URL to the function it is decorating.
@@ -59,7 +61,7 @@ vectorizer_tox = pickle.load(open('models\vectorizer_tox.pkl',"rb"))
 
 @app.route('/')
 def home():
-    return render_template('Emotional.html')
+    return render_template('emotional.html')
 
 #You can use the methods argument of the route() decorator to handle different HTTP methods.
 #GET: A GET message is send, and the server returns data
@@ -67,11 +69,11 @@ def home():
 #Add Post method to the decorator to allow for form submission. 
 #Redirect to /predict page with the output
 
-@app.route('/predict',methods=['POST'])
-def predict():
+@app.route('/search',methods=['POST'])
+def search():
     str_features=[]
-    print(request.form.values())
-    #Convert inputs to string.
+    
+    #Convert inputs to string
     str_features = [str(request.form.values())]
     data1 = pd.DataFrame(str_features,columns=['text'])
     
@@ -158,9 +160,10 @@ def predict():
 
     # Applying the Pre-processing function
     features = data1['text'].apply(preproces)
-    features = list(features)
+    # features = list(features)
+    
+    
     # Applying the TfidfVectorizer  
-    # tf_idf = TfidfVectorizer()
     features_tf_agg = vectorizer_agg.transform(features)
     features_tf_att = vectorizer_att.transform(features)
     features_tf_tox = vectorizer_tox.transform(features)
@@ -169,7 +172,7 @@ def predict():
     # Prediction of regressor_agg
     prediction_agg = regressor_agg.predict(features_tf_agg)
     
-     # Prediction of regressor_att
+    # Prediction of regressor_att
     prediction_att = regressor_att.predict(features_tf_att)
     
     # Prediction of regressor_tox
@@ -186,14 +189,23 @@ def predict():
     output_att = round(100*abs(prediction_att), 1)
     output_tox = round(100*abs(prediction_tox), 1)
     
-    print(output_agg)
-    print(output_att)
-    print(output_tox)
-    print(prediction_agg)
-    print(prediction_att)
-    print(prediction_tox)
+    # print(output_agg)
+    # print(output_att)
+    # print(output_tox)
+    # print(prediction_agg)
+    # print(prediction_att)
+    # print(prediction_tox)
+    # print(features_tf_agg )
+    # print(features_tf_att )
+    # print(features_tf_tox )
+    # print(features)
+    # print(data1)
+    # print(str_features)
+    
+    
+    
 
-    return render_template('Emotional.html', prediction_text=f'Aggressive stance % is {format(output_agg)}%, Attacking Stance % is {format(output_att)}% and {format(output_tox)}%.')
+    return render_template('emotional.html', prediction_text=f'Aggressive stance % is {format(output_agg)}%, Attacking Stance % is {format(output_att)}% and {format(output_tox)}%.')
 
 
 #When the Python interpreter reads a source file, it first defines a few special variables. 

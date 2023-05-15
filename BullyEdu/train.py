@@ -1,4 +1,8 @@
+!pip install "ray[tune]"
+
 # Importing Libraries
+import multiprocessing as mp
+from multiprocessing import Process
 import warnings
 warnings.filterwarnings('ignore')
 import pandas as pd
@@ -25,43 +29,47 @@ from sklearn.pipeline import Pipeline
 import pickle
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 nltk.download('stopwords')
-from pypmml import Model
+nltk.download('punkt')
+nltk.download('wordnet')
+from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVR, LinearSVR
-from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from nltk.tokenize import sent_tokenize, word_tokenize
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn2pmml.feature_extraction.text import Splitter
 from sklearn.pipeline import Pipeline
 from sklearn_pandas import DataFrameMapper
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
-from sklearn2pmml import PMMLPipeline, sklearn2pmml
 from sklearn.preprocessing import FunctionTransformer
-from nyoka import skl_to_pmml
-
 import sys
 
 # Reading the data and storing it in the dataframes
 agg_df = pd.read_csv("data/aggression_parsed_dataset.csv")
 att_df = pd.read_csv("data/attack_parsed_dataset.csv")
-tox_df = pd.read_csv("data/toxicity_parsed_dataset.csv")
+tox_df = pd.read_csv("data/toxicity_parsed_dataset.csv")"
 
 # Converting oh_label from int to str
 agg_df['oh_label'] = agg_df['oh_label'].astype(str)
 att_df['oh_label'] = att_df['oh_label'].astype(str)
 tox_df['oh_label'] = tox_df['oh_label'].astype(str)
 
-# Dropping columns
-agg_df.drop('index',axis='columns',inplace=True)
-att_df.drop('index',axis='columns',inplace=True)
-tox_df.drop('index',axis='columns',inplace=True)
-
 # Renaming the columns
 agg_df = agg_df.rename({'ed_label_0':'Prob_not_aggression','ed_label_1':'Prob_aggression','oh_label':'aggression'},axis='columns')
 att_df = att_df.rename({'ed_label_0':'Prob_not_attack','ed_label_1':'Prob_attack','oh_label':'attack'},axis='columns')
 tox_df = tox_df.rename({'ed_label_0':'Prob_not_toxicity','ed_label_1':'Prob_toxicity','oh_label':'toxicity'},axis='columns')
+
+# Dropping columns
+agg_df.drop(['index','Prob_not_aggression','aggression'],axis='columns',inplace=True)
+att_df.drop(['index','Prob_not_attack','attack'],axis='columns',inplace=True)
+tox_df.drop(['index','Prob_not_toxicity','toxicity'],axis='columns',inplace=True)
+
+
+
+print(tox_df['Prob_toxicity'].max())
+
+
 
 ### PreProcessing
 
@@ -139,11 +147,11 @@ def preproces(text):
     text = rem_hashtags(text)
     text = rem_chars(text)
     text = rem_multi_spaces(text)
-    text = stemmer(text)
-    text = lemmatize(text)
+#    text = stemmer(text)
+#    text = lemmatize(text)
     return text
 
-
+import sys
 
 # Defining the stack overflow for recursive functions
 sys.setrecursionlimit(5000)
@@ -169,15 +177,32 @@ agg_df['Prob_aggression'] = agg_df['Prob_aggression'].astype(float)
 att_df['Prob_attack'] = att_df['Prob_attack'].astype(float)
 tox_df['Prob_toxicity'] = tox_df['Prob_toxicity'].astype(float)
 
+# Dropping the text column from the datasets
+agg_df.drop('Text',axis='columns',inplace=True)
+att_df.drop('Text',axis='columns',inplace=True)
+tox_df.drop('Text',axis='columns',inplace=True)
+
+# Rearranging the columns of the datasets
+# agg_df = agg_df['tokenized_text','Prob_aggression']
+# att_df = att_df['tokenized_text','Prob_attack']
+# tox_df = tox_df['tokenized_text','Prob_toxicity']
+
+print(tox_df.head())
+
+# Writing the dataframe to csv files
+agg_df.to_csv("data/agg_dataset.csv", header=True, index=True,mode='w')
+att_df.to_csv("data/att_dataset.csv", header=True, index=True,mode='w')
+tox_df.to_csv("data/tox_dataset.csv", header=True, index=True,mode='w')
+
 # Splitting the datasets into predictor and target datasets for all dataframes
-X_agg,Y_agg = agg_df['Text'],agg_df['Prob_aggression']
-X_att,Y_att = att_df['Text'],att_df['Prob_attack']
-X_tox,Y_tox = tox_df['Text'],tox_df['Prob_toxicity']
+X_agg,Y_agg = agg_df['tokenized_text'],agg_df['Prob_aggression']
+X_att,Y_att = att_df['tokenized_text'],att_df['Prob_attack']
+X_tox,Y_tox = tox_df['tokenized_text'],tox_df['Prob_toxicity']
 
 # Splitting the datasets into training and testing datasets for all dataframes
-X_train_agg, X_test_agg, y_train_agg, y_test_agg = train_test_split(X_agg, Y_agg, test_size = 0.2, stratify =agg_df['aggression'], random_state = 42)
-X_train_att, X_test_att, y_train_att, y_test_att = train_test_split(X_att, Y_att, test_size = 0.2, stratify =att_df['attack'], random_state = 42)
-X_train_tox, X_test_tox, y_train_tox, y_test_tox = train_test_split(X_tox, Y_tox, test_size = 0.2, stratify =tox_df['toxicity'], random_state = 42)
+X_train_agg, X_test_agg, y_train_agg, y_test_agg = train_test_split(X_agg, Y_agg, test_size = 0.2, random_state = 1234)
+X_train_att, X_test_att, y_train_att, y_test_att = train_test_split(X_att, Y_att, test_size = 0.2, random_state = 1234)
+X_train_tox, X_test_tox, y_train_tox, y_test_tox = train_test_split(X_tox, Y_tox, test_size = 0.2, random_state = 1234)
 
 # Function for TF-IDF Vectoraization
 def vectorization(X_train,X_test):
@@ -197,21 +222,21 @@ X_train_att_tf, X_test_att_tf, vectorizer_att = vectorization(X_train_att,X_test
 X_train_tox_tf, X_test_tox_tf, vectorizer_tox = vectorization(X_train_tox,X_test_tox)
 
 # Grid Search CV to arrive at the best parameters for training the SVR model
-def hypertuning(x,y):
+# def hypertuning(x,y):
     
-    # Defining the parameters
-    parameters = {'kernel': ('linear', 'rbf','poly'), 'C':[0.1, 1, 10, 100, 1000],'gamma': [1e-7, 1e-4],'epsilon':[0.1,0.2,0.5,0.3]}
+#     # Defining the parameters
+#     parameters = {'kernel': ('linear', 'rbf','poly'), 'C':[0.1, 1, 10, 100, 1000],'gamma': [1e-7, 1e-4],'epsilon':[0.1,0.2,0.5,0.3]}
     
-    # Instantiating the SVR
-    svm = SVR()
+#     # Instantiating the SVR
+#     svm = RandomForestRegressor()
     
-    # Instantiating the Grid Search CV
-    clf = GridSearchCV(svm, parameters)
+#     # Instantiating the Grid Search CV
+#     clf = GridSearchCV(svm, parameters,n_jobs=-1)
     
-    # Fitting the grid search with predictors and target variables of the training dataset
-    clf.fit(x,y)
+#     # Fitting the grid search with predictors and target variables of the training dataset
+#     clf.fit(x,y)
     
-    return clf.best_params_
+#     return clf.best_params_
 
 # best_param = hypertuning(X_train_agg_tf,y_train_agg)
 # print(best_param)
@@ -220,7 +245,7 @@ def hypertuning(x,y):
 def train_model(predictor,target):
     
     # Instantiating the Support Vector Regressor
-    regressor = LinearSVR()
+    regressor = RandomForestRegressor()
     
     # Fitting the model with the train and test data
     regressor.fit(predictor, target)
@@ -244,9 +269,9 @@ y_pred_agg = predictor(regressor_agg,X_test_agg_tf)
 y_pred_att = predictor(regressor_att,X_test_att_tf)
 y_pred_tox = predictor(regressor_tox,X_test_tox_tf)
 
-print(y_pred_agg)
-print(y_pred_att)
-print(y_pred_tox)
+# print(y_pred_agg)
+# print(y_pred_att)
+# print(y_pred_tox)
 
 y_pred_agg_1 = pd.DataFrame(y_pred_agg)
 y_pred_att_1 = pd.DataFrame(y_pred_att)
@@ -260,6 +285,11 @@ print(score_att)
 
 score_tox = np.sqrt(mean_squared_error(y_test_tox, y_pred_tox_1))
 print(score_tox)
+
+# R2 Score of the model
+print(f'The R2 Score of agg is: {r2_score(y_test_agg, y_pred_agg_1)}')
+print(f'The R2 Score of att is: {r2_score(y_test_att, y_pred_att_1)}')
+print(f'The R2 Score of tox is: {r2_score(y_test_tox, y_pred_tox_1)}')
 
 
 
@@ -297,7 +327,3 @@ vectorizer_tox = pickle.load(open('vectorizer_tox.pkl',"rb"))
 
 # Dumping the Preprocess function in form of pickle (.pkl)
 # pickle.dump('preprocess',open('preprocess.pkl',"wb"))
-
-
-import pickle
-print(type(pickle.load(open('regressor_agg.pkl',"rb"))))
